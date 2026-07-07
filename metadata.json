@@ -1,0 +1,6 @@
+{
+  "name": "Classroom Behavior Manager",
+  "description": "A ClassDojo-inspired platform to manage student behavior, positive/negative points, parent tracking, weekly reports, school calendar, and private messaging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

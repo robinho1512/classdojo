@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-serif-cormorant {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+  .font-sans-inter {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0b;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e1e21;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c4a47c;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Base custom definitions */
+:root {
+  --bg: #0a0a0b;
+  --surface: #141416;
+  --surface-light: #1e1e21;
+  --accent: #c4a47c;
+  --accent-light: rgba(196, 164, 124, 0.1);
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --positive: #52b788;
+  --negative: #e63946;
+}
+
+/* Custom backgrounds and highlights */
+.theme-dark-bg {
+  background-color: var(--bg);
+}
+.theme-surface {
+  background-color: var(--surface);
+}
+.theme-surface-light {
+  background-color: var(--surface-light);
+}
+.border-gold-subtle {
+  border-color: rgba(196, 164, 124, 0.15);
+}
+.text-gold-accent {
+  color: var(--accent);
+}
+.bg-gold-accent {
+  background-color: var(--accent);
+}
+.shadow-gold-soft {
+  box-shadow: 0 4px 20px -2px rgba(196, 164, 124, 0.1);
+}
+
