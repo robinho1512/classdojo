@@ -1,15 +1,1605 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-br" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EduPoint Pro - Dojo Behavioral System</title>
+    <title>EduClass Dojo - Portal do Aluno, Professor & Responsável</title>
+    <!-- Tailwind CDN & Font -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Cormorant Garamond', 'serif'],
+            }
+          }
+        }
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: #0a0a0b; }
+      ::-webkit-scrollbar-thumb { background: #1e1e21; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #c4a47c; }
+      .font-serif-cormorant { font-family: 'Cormorant Garamond', serif; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      .animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
   </head>
   <body class="bg-[#0a0a0b] text-[#e4e4e7] antialiased">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- React 18, ReactDOM 18 & Lucide Icons ESM Importmap -->
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react-dom": "https://esm.sh/react-dom@18.3.1/client",
+          "lucide-react": "https://esm.sh/lucide-react@0.415.0"
+        }
+      }
+    </script>
+
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useMemo } from 'react';
+      import { createRoot } from 'react-dom';
+      import {
+        Users, MessageSquare, Calendar, TrendingUp, Shield, CreditCard, 
+        Search, Plus, Filter, Send, Download, Sparkles, Wifi, WifiOff, 
+        AlertTriangle, Check, Trash2, Globe, Moon, Sun, DollarSign, 
+        Award, AlertCircle, FileText, Smartphone, Fingerprint, RefreshCw,
+        Clock, ArrowRight, Layers, HelpCircle, CheckSquare, Square, Clipboard, Paperclip, CheckCircle,
+        GraduationCap, KeyRound, Hand, Heart, FileX, MessageSquareOff, ShieldAlert, ZapOff, CheckSquare as CheckIcon
+      } from 'lucide-react';
+
+      // --- TRADUÇÕES ---
+      const translations = {
+        pt: {
+          classroom: "Sala de Aula", students: "Alunos", behavior: "Comportamento",
+          messages: "Mensagens Privadas", calendar: "Calendário Escolar", reports: "Relatórios",
+          adminPanel: "Painel Admin", payment: "Mensalidades & Taxas", logout: "Sair",
+          all: "Todos", addStudent: "Adicionar Aluno", exportPdf: "Exportar PDF",
+          exportExcel: "Exportar Excel (CSV)", chatAssistant: "EduAI Assistente", aiHelp: "Perguntar ao EduAI"
+        },
+        en: {
+          classroom: "Classroom", students: "Students", behavior: "Behavior",
+          messages: "Private Messages", calendar: "School Calendar", reports: "Reports",
+          adminPanel: "Admin Panel", payment: "Fees & Payments", logout: "Logout",
+          all: "All", addStudent: "Add Student", exportPdf: "Export PDF",
+          exportExcel: "Export Excel (CSV)", chatAssistant: "EduAI Assistant", aiHelp: "Ask EduAI"
+        }
+      };
+
+      // --- DADOS SEED DEFAULT ---
+      const DEFAULT_DB = {
+        students: [
+          { id: "s1", name: "Artur Silva", avatar: "👾", points: 14, parentEmail: "artur.pais@email.com", parentName: "Marcos Silva" },
+          { id: "s2", name: "Beatriz Costa", avatar: "🦄", points: 22, parentEmail: "beatriz.pais@email.com", parentName: "Helena Costa" },
+          { id: "s3", name: "Caio Oliveira", avatar: "🐯", points: 8, parentEmail: "caio.pais@email.com", parentName: "Sofia Oliveira" },
+          { id: "s4", name: "Davi Santos", avatar: "🤖", points: 24, parentEmail: "joaopedro.joaopedro12345678910@gmail.com", parentName: "João Santos" },
+          { id: "s5", name: "Eduarda Pereira", avatar: "🦊", points: 3, parentEmail: "eduarda.pais@email.com", parentName: "Renato Pereira" }
+        ],
+        categories: [
+          { id: "c1", name: "Trabalho em Equipe", points: 1, type: "positive", icon: "Users" },
+          { id: "c2", name: "Participação Ativa", points: 1, type: "positive", icon: "Hand" },
+          { id: "c3", name: "Ajudar Colegas", points: 2, type: "positive", icon: "Heart" },
+          { id: "c4", name: "Lição de Casa Completa", points: 1, type: "positive", icon: "CheckCircle" },
+          { id: "c5", name: "Persistência", points: 2, type: "positive", icon: "Award" },
+          { id: "c6", name: "Sem Lição de Casa", points: -1, type: "negative", icon: "FileX" },
+          { id: "c7", name: "Conversa Paralela", points: -1, type: "negative", icon: "MessageSquareOff" },
+          { id: "c8", name: "Desrespeito em Sala", points: -2, type: "negative", icon: "ShieldAlert" },
+          { id: "c9", name: "Fora da Cadeira / Distraído", points: -1, type: "negative", icon: "ZapOff" }
+        ],
+        point_logs: [
+          { id: "pl1", studentId: "s1", categoryName: "Trabalho em Equipe", points: 1, description: "Colaborou muito bem no projeto de ciências.", timestamp: new Date(Date.now() - 3 * 3600000).toISOString(), type: "positive" },
+          { id: "pl2", studentId: "s2", categoryName: "Participação Ativa", points: 1, description: "Respondeu perguntas difíceis na aula.", timestamp: new Date(Date.now() - 2 * 3600000).toISOString(), type: "positive" },
+          { id: "pl3", studentId: "s4", categoryName: "Ajudar Colegas", points: 2, description: "Ajudou a organizar todos os materiais do grupo.", timestamp: new Date(Date.now() - 1 * 3600000).toISOString(), type: "positive" }
+        ],
+        messages: [
+          { id: "m1", senderId: "teacher_1", senderName: "Prof. Ricardo Silva", receiverId: "joaopedro.joaopedro12345678910@gmail.com", content: "Olá João! O Davi foi fantástico hoje na aula de artes, ajudou muito os colegas.", timestamp: new Date(Date.now() - 24 * 3600000).toISOString() },
+          { id: "m2", senderId: "joaopedro.joaopedro12345678910@gmail.com", senderName: "João Santos", receiverId: "teacher_1", content: "Que excelente notícia, Professor! Ficamos muito orgulhosos dele.", timestamp: new Date(Date.now() - 22 * 3600000).toISOString() }
+        ],
+        calendar: [
+          { id: "e1", title: "Feira de Ciências Anual", description: "Apresentação dos projetos no ginásio.", date: new Date(Date.now() + 3 * 24 * 3600000).toISOString().split('T')[0], category: "event" },
+          { id: "e2", title: "Reunião de Pais e Mestres", description: "Entrega de boletins e conversa.", date: new Date(Date.now() + 7 * 24 * 3600000).toISOString().split('T')[0], category: "meeting" }
+        ],
+        payments: [
+          { id: "p1", title: "Livro Didático de Geografia - 5º Ano", amount: 120.00, dueDate: new Date(Date.now() + 5 * 24 * 3600000).toISOString().split('T')[0], status: "pending", category: "material" },
+          { id: "p2", title: "Excursão para o Planetário", amount: 45.00, dueDate: new Date(Date.now() + 12 * 24 * 3600000).toISOString().split('T')[0], status: "pending", category: "trip" },
+          { id: "p3", title: "Mensalidade Escolar - Junho", amount: 450.00, dueDate: new Date(Date.now() - 2 * 24 * 3600000).toISOString().split('T')[0], status: "paid", category: "tuition" }
+        ],
+        webhooks: [
+          { id: "w1", url: "https://api.escola.com/webhooks/behavior", name: "Sincronizador Secretaria", events: ["points.add", "messages.sent"], active: true }
+        ],
+        audit_logs: [
+          { id: "l1", action: "Inicialização do Sistema", user: "Administrador", timestamp: new Date().toISOString(), details: "Banco de dados local sincronizado e ativo." }
+        ]
+      };
+
+      // --- MOCK CHATBOT RESPOSTAS ---
+      const BOT_REPLIES = [
+        "Com certeza! O reforço positivo em sala estimula o engajamento e cria uma cultura de cooperação fantástica.",
+        "Para alunos mais agitados, sugerimos focar em feedbacks imediatos usando recompensas do baú do tesouro para reter a atenção.",
+        "Uma comunicação fluida com os responsáveis via mensagens privadas reduz em até 70% as fricções comportamentais na escola.",
+        "Excelente pergunta! O Dojo encoraja a persistência através da gamificação de tarefas diárias simples.",
+        "Se precisar de um rascunho de e-mail ou relatório personalizado, selecione o aluno e clique em 'Gerar com IA' no painel."
+      ];
+
+      function App() {
+        // Auth, Role & UI preferences
+        const [isLoggedIn, setIsLoggedIn] = useState(false);
+        const [role, setRole] = useState('student'); // 'student', 'teacher', 'parent', 'admin'
+        const [userEmail, setUserEmail] = useState('aluno@escola.com');
+        const [activeTab, setActiveTab] = useState('student_dashboard');
+        const [lang, setLang] = useState('pt');
+        const [darkMode, setDarkMode] = useState(true);
+
+        // Database states
+        const [students, setStudents] = useState([]);
+        const [categories, setCategories] = useState([]);
+        const [pointLogs, setPointLogs] = useState([]);
+        const [messages, setMessages] = useState([]);
+        const [calendarEvents, setCalendarEvents] = useState([]);
+        const [payments, setPayments] = useState([]);
+        const [auditLogs, setAuditLogs] = useState([]);
+        const [webhooks, setWebhooks] = useState([]);
+
+        // Interactive UI Filter & Form States
+        const [searchQuery, setSearchQuery] = useState('');
+        const [activeStudentForPoints, setActiveStudentForPoints] = useState(null);
+        const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+        const [showAddEventModal, setShowAddEventModal] = useState(false);
+        const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+        const [showPayModal, setShowPayModal] = useState(null);
+        const [showEduAIChat, setShowEduAIChat] = useState(false);
+        const [isBatchMode, setIsBatchMode] = useState(false);
+        const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+
+        // Forms fields
+        const [newStudentName, setNewStudentName] = useState('');
+        const [newStudentParentEmail, setNewStudentParentEmail] = useState('');
+        const [newStudentParentName, setNewStudentParentName] = useState('');
+        const [newStudentAvatar, setNewStudentAvatar] = useState('🤖');
+
+        const [newCategoryName, setNewCategoryName] = useState('');
+        const [newCategoryPoints, setNewCategoryPoints] = useState(1);
+        const [newCategoryType, setNewCategoryType] = useState('positive');
+
+        const [newEventTitle, setNewEventTitle] = useState('');
+        const [newEventDesc, setNewEventDesc] = useState('');
+        const [newEventDate, setNewEventDate] = useState('');
+        const [newEventCategory, setNewEventCategory] = useState('event');
+
+        const [newMessageText, setNewMessageText] = useState('');
+        const [messageRecipientEmail, setMessageRecipientEmail] = useState('');
+        const [attachedFile, setAttachedFile] = useState(null);
+
+        // Payment mock
+        const [cardName, setCardName] = useState('');
+        const [cardNumber, setCardNumber] = useState('');
+
+        // EduAI assist
+        const [aiPromptText, setAiPromptText] = useState('');
+        const [aiChatHistory, setAiChatHistory] = useState([
+          { sender: 'ai', text: 'Olá! Sou o EduAI, seu assistente de comportamento. Como posso te apoiar hoje com insights do Dojo?', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+        ]);
+        const [aiLoading, setAiLoading] = useState(false);
+
+        // Smart Report Modal
+        const [activeAIReportCard, setActiveAIReportCard] = useState(null);
+        const [generatingReportForId, setGeneratingReportForId] = useState(null);
+
+        // Daily quests state for active student view
+        const [quests, setQuests] = useState([
+          { id: 'q1', text: 'Chegar no horário hoje', reward: 1, completed: false },
+          { id: 'q2', text: 'Ajudar a organizar a sala', reward: 2, completed: false },
+          { id: 'q3', text: 'Prestar atenção sem interrupções', reward: 1, completed: false },
+          { id: 'q4', text: 'Concluir a lição do dia', reward: 2, completed: false }
+        ]);
+
+        const t = translations[lang] || translations.pt;
+
+        // Load data on start
+        useEffect(() => {
+          let db = localStorage.getItem('educlass_dojo_db');
+          if (!db) {
+            localStorage.setItem('educlass_dojo_db', JSON.stringify(DEFAULT_DB));
+            db = JSON.stringify(DEFAULT_DB);
+          }
+          const data = JSON.parse(db);
+          setStudents(data.students || []);
+          setCategories(data.categories || []);
+          setPointLogs(data.point_logs || []);
+          setMessages(data.messages || []);
+          setCalendarEvents(data.calendar || []);
+          setPayments(data.payments || []);
+          setAuditLogs(data.audit_logs || []);
+          setWebhooks(data.webhooks || []);
+        }, []);
+
+        // Save helper
+        const saveDB = (updates) => {
+          const current = {
+            students, categories, point_logs: pointLogs, messages, calendar: calendarEvents, payments, audit_logs: auditLogs, webhooks
+          };
+          const merged = { ...current, ...updates };
+          localStorage.setItem('educlass_dojo_db', JSON.stringify(merged));
+          if (updates.students) setStudents(updates.students);
+          if (updates.categories) setCategories(updates.categories);
+          if (updates.point_logs) setPointLogs(updates.point_logs);
+          if (updates.messages) setMessages(updates.messages);
+          if (updates.calendar) setCalendarEvents(updates.calendar);
+          if (updates.payments) setPayments(updates.payments);
+          if (updates.audit_logs) setAuditLogs(updates.audit_logs);
+          if (updates.webhooks) setWebhooks(updates.webhooks);
+        };
+
+        // Student representing logged user (Davi is the standard mockup student)
+        const loggedInStudent = useMemo(() => {
+          return students.find(s => s.parentEmail === userEmail || s.name.toLowerCase().includes("davi")) || students[3] || {
+            id: 's4', name: 'Davi Santos', avatar: '🤖', points: 24, parentEmail: 'joaopedro.joaopedro12345678910@gmail.com', parentName: 'João Santos'
+          };
+        }, [students, userEmail]);
+
+        // Login handle without auth roadblocks
+        const handleLogin = (selectedRole, email) => {
+          setRole(selectedRole);
+          setUserEmail(email);
+          setIsLoggedIn(true);
+
+          if (selectedRole === 'student') {
+            setActiveTab('student_dashboard');
+            setMessageRecipientEmail('ricardo.silva@escola.com');
+          } else if (selectedRole === 'parent') {
+            setActiveTab('classroom');
+            setMessageRecipientEmail('ricardo.silva@escola.com');
+          } else {
+            setActiveTab('classroom');
+            setMessageRecipientEmail('joaopedro.joaopedro12345678910@gmail.com');
+          }
+          
+          // Log audit
+          const newLog = {
+            id: 'l_' + Date.now(), action: "Acesso ao Sistema", user: email, timestamp: new Date().toISOString(), details: `Login efetuado como ${selectedRole}.`
+          };
+          saveDB({ audit_logs: [newLog, ...auditLogs] });
+        };
+
+        // Actions
+        const handleAddStudent = (e) => {
+          e.preventDefault();
+          if (!newStudentName) return;
+          const newStud = {
+            id: 's_' + Date.now(), name: newStudentName, avatar: newStudentAvatar, points: 0,
+            parentEmail: newStudentParentEmail || "responsavel@email.com", parentName: newStudentParentName || "Responsável"
+          };
+          const updated = [...students, newStud];
+          const log = { id: 'l_' + Date.now(), action: "Adicionar Aluno", user: userEmail, timestamp: new Date().toISOString(), details: `Aluno ${newStudentName} cadastrado.` };
+          saveDB({ students: updated, audit_logs: [log, ...auditLogs] });
+          setNewStudentName(''); setNewStudentParentEmail(''); setNewStudentParentName(''); setShowAddStudentModal(false);
+        };
+
+        const handleDeleteStudent = (id, name) => {
+          if (confirm(`Deseja realmente remover o aluno ${name}?`)) {
+            const updated = students.filter(s => s.id !== id);
+            const logsFiltered = pointLogs.filter(log => log.studentId !== id);
+            const log = { id: 'l_' + Date.now(), action: "Remover Aluno", user: userEmail, timestamp: new Date().toISOString(), details: `Aluno ${name} e histórico removidos.` };
+            saveDB({ students: updated, point_logs: logsFiltered, audit_logs: [log, ...auditLogs] });
+          }
+        };
+
+        const handleAddCategory = (e) => {
+          e.preventDefault();
+          if (!newCategoryName) return;
+          const newCat = {
+            id: 'c_' + Date.now(), name: newCategoryName,
+            points: newCategoryType === 'positive' ? Math.abs(newCategoryPoints) : -Math.abs(newCategoryPoints),
+            type: newCategoryType, icon: newCategoryType === 'positive' ? 'Award' : 'ShieldAlert'
+          };
+          saveDB({ categories: [...categories, newCat] });
+          setNewCategoryName(''); setShowAddCategoryModal(false);
+        };
+
+        const handleGivePoints = (category) => {
+          if (!activeStudentForPoints) return;
+          const stud = students.find(s => s.id === activeStudentForPoints.id);
+          if (!stud) return;
+
+          stud.points += category.points;
+          const pl = {
+            id: 'pl_' + Math.random().toString(36).substr(2, 9), studentId: stud.id,
+            categoryName: category.name, points: category.points, description: `Comportamento: ${category.name}`,
+            timestamp: new Date().toISOString(), type: category.type
+          };
+          const updatedStuds = students.map(s => s.id === stud.id ? stud : s);
+          saveDB({ students: updatedStuds, point_logs: [pl, ...pointLogs] });
+          setActiveStudentForPoints(null);
+        };
+
+        const handleBatchPoints = (category) => {
+          if (selectedStudentIds.length === 0) return;
+          const newLogs = [];
+          const updatedStuds = students.map(s => {
+            if (selectedStudentIds.includes(s.id)) {
+              s.points += category.points;
+              newLogs.push({
+                id: 'pl_' + Math.random().toString(36).substr(2, 9), studentId: s.id,
+                categoryName: category.name, points: category.points, description: `Coletivo: ${category.name}`,
+                timestamp: new Date().toISOString(), type: category.type
+              });
+            }
+            return s;
+          });
+          saveDB({ updatedStuds, point_logs: [...newLogs, ...pointLogs] });
+          setSelectedStudentIds([]);
+          setIsBatchMode(false);
+        };
+
+        const handleSendMessage = (e) => {
+          e.preventDefault();
+          if (!newMessageText.trim() && !attachedFile) return;
+
+          const sId = role === 'teacher' ? 'teacher_1' : userEmail;
+          const rId = role === 'teacher' ? messageRecipientEmail : 'teacher_1';
+          const newMsg = {
+            id: 'msg_' + Date.now(), senderId: sId,
+            senderName: role === 'teacher' ? 'Prof. Ricardo Silva' : 'João Santos',
+            receiverId: rId, content: newMessageText, timestamp: new Date().toISOString(),
+            attachment: attachedFile || undefined
+          };
+
+          const nextMessages = [...messages, newMsg];
+          setNewMessageText('');
+          setAttachedFile(null);
+          saveDB({ messages: nextMessages });
+
+          // Simulate automatic responsive reply after 1.5 seconds to feel intelligent
+          setTimeout(() => {
+            const simulatedMsg = {
+              id: 'msg_reply_' + Date.now(), senderId: rId,
+              senderName: role === 'teacher' ? 'João Santos (Responsável)' : 'Prof. Ricardo Silva',
+              receiverId: sId,
+              content: role === 'teacher' 
+                ? "Olá, agradeço o feedback. Estamos acompanhando de perto o desenvolvimento dele aqui em casa!" 
+                : "Olá! Agradecemos o contato. Vou analisar os pontos comportamentais em sala e entrarei em contato se necessário. Bom dia!",
+              timestamp: new Date().toISOString()
+            };
+            // Read from local storage to prevent overwrite racing
+            const latestDb = JSON.parse(localStorage.getItem('educlass_dojo_db') || '{}');
+            const mergedMsgs = [...(latestDb.messages || nextMessages), simulatedMsg];
+            saveDB({ messages: mergedMsgs });
+          }, 1500);
+        };
+
+        const handleAddCalendarEvent = (e) => {
+          e.preventDefault();
+          if (!newEventTitle || !newEventDate) return;
+          const newEvt = {
+            id: 'evt_' + Date.now(), title: newEventTitle, description: newEventDesc, date: newEventDate, category: newEventCategory
+          };
+          saveDB({ calendar: [...calendarEvents, newEvt] });
+          setNewEventTitle(''); setNewEventDesc(''); setNewEventDate(''); setShowAddEventModal(false);
+        };
+
+        const handleDeleteEvent = (id) => {
+          saveDB({ calendar: calendarEvents.filter(e => e.id !== id) });
+        };
+
+        const handlePayFee = (e) => {
+          e.preventDefault();
+          if (!showPayModal || !cardName || !cardNumber) return;
+          const updated = payments.map(p => p.id === showPayModal.id ? { ...p, status: 'paid' } : p);
+          const audit = {
+            id: 'l_' + Date.now(), action: "Pagamento Efetuado", user: userEmail, timestamp: new Date().toISOString(),
+            details: `Mensalidade/Taxa '${showPayModal.title}' de R$ ${showPayModal.amount} paga por ${cardName}.`
+          };
+          saveDB({ payments: updated, audit_logs: [audit, ...auditLogs] });
+          setCardName(''); setCardNumber(''); setShowPayModal(null);
+          alert("🎉 Pagamento simulado com sucesso!");
+        };
+
+        const handleAskDojoAI = (e) => {
+          e.preventDefault();
+          if (!aiPromptText.trim()) return;
+
+          const userMsg = { sender: 'user', text: aiPromptText, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+          setAiChatHistory(prev => [...prev, userMsg]);
+          setAiPromptText('');
+          setAiLoading(true);
+
+          setTimeout(() => {
+            const randomReply = BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)];
+            setAiChatHistory(prev => [...prev, {
+              sender: 'ai', text: randomReply, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
+            setAiLoading(false);
+          }, 1000);
+        };
+
+        // Dynamic generation of Weekly Report (Simulation of Smart AI Agent)
+        const handleGenerateAIReport = (student) => {
+          setGeneratingReportForId(student.id);
+          setTimeout(() => {
+            const studLogs = pointLogs.filter(log => log.studentId === student.id).slice(0, 10);
+            const scoreText = student.points >= 20 ? "Excepcional" : student.points >= 10 ? "Satisfatório" : "Atenção Necessária";
+            const reportText = `### Relatório Comportamental Semanal - ${student.name}
+**Análise do Professor:** O aluno tem se saído muito bem no comportamento geral. Pontuação atual: **${student.points} pontos**.
+
+**Comportamentos Recentes Observados:**
+${studLogs.length > 0 ? studLogs.map(l => `- [${l.type === 'positive' ? '✓' : '✗'}] ${l.categoryName}: ${l.description}`).join('\n') : '- Nenhum log recente ainda.'}
+
+**Plano de Ação Pedagógico:**
+1. Manter o incentivo por meio do reforço de pontos positivos nas tarefas em equipe.
+2. Estimular participação ativa na leitura em voz alta.
+
+**Mensagem Sugerida para os Responsáveis:**
+"Olá! Gostaria de parabenizar o esforço do(a) ${student.name} esta semana. Ele está com a classificação comportamental: *${scoreText}*. Continuamos juntos por aqui!"`;
+            
+            setActiveAIReportCard({ student, reportText });
+            setGeneratingReportForId(null);
+          }, 800);
+        };
+
+        // Interactive Quests Handler
+        const handleQuestCheck = (questId, completed, reward) => {
+          setQuests(quests.map(q => q.id === questId ? { ...q, completed } : q));
+          if (completed) {
+            loggedInStudent.points += reward;
+            const logEntry = {
+              id: 'pl_' + Math.random().toString(36).substr(2, 9), studentId: loggedInStudent.id,
+              categoryName: "Missão Diária Concluída", points: reward, description: "Ganhou bônus por tarefa diária cumprida!",
+              timestamp: new Date().toISOString(), type: 'positive'
+            };
+            saveDB({
+              students: students.map(s => s.id === loggedInStudent.id ? loggedInStudent : s),
+              point_logs: [logEntry, ...pointLogs]
+            });
+            triggerPushNotification("Dojo do Aluno", `Você completou uma missão e ganhou +${reward} pontos!`);
+          }
+        };
+
+        // Store rewards redemption
+        const handleRedeemReward = (rewardItem) => {
+          if (loggedInStudent.points < rewardItem.cost) {
+            alert("🥋 Pontos insuficientes no Dojo! Continue ganhando pontos para abrir o Baú do Tesouro.");
+            return;
+          }
+          if (confirm(`Deseja trocar ${rewardItem.cost} pontos por "${rewardItem.title}"?`)) {
+            loggedInStudent.points -= rewardItem.cost;
+            const logEntry = {
+              id: 'pl_' + Math.random().toString(36).substr(2, 9), studentId: loggedInStudent.id,
+              categoryName: `Resgate: ${rewardItem.title}`, points: -rewardItem.cost, description: `Resgatou ${rewardItem.title} no Baú do Tesouro!`,
+              timestamp: new Date().toISOString(), type: 'negative'
+            };
+            saveDB({
+              students: students.map(s => s.id === loggedInStudent.id ? loggedInStudent : s),
+              point_logs: [logEntry, ...pointLogs]
+            });
+            alert(`🎉 Resgate confirmado! Mostre este comprovante ao seu professor em sala de aula para receber seu item: "${rewardItem.title}".`);
+          }
+        };
+
+        // Notification fallback
+        const triggerPushNotification = (title, msg) => {
+          const toast = document.createElement('div');
+          toast.className = 'fixed bottom-4 right-4 bg-slate-900 border border-[#c4a47c] text-white p-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 animate-fade-in max-w-sm';
+          toast.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-[#c4a47c]/15 flex items-center justify-center text-[#c4a47c] font-bold">🥋</div>
+            <div>
+              <div class="font-bold text-xs tracking-wider uppercase text-[#c4a47c]">${title}</div>
+              <div class="text-xs text-slate-300 mt-0.5">${msg}</div>
+            </div>
+          `;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 4000);
+        };
+
+        // Filters
+        const filteredStudents = useMemo(() => {
+          return students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }, [students, searchQuery]);
+
+        const filteredMessages = useMemo(() => {
+          const sId = role === 'teacher' ? 'teacher_1' : userEmail;
+          const rId = role === 'teacher' ? messageRecipientEmail : 'teacher_1';
+          return messages.filter(m => (m.senderId === sId && m.receiverId === rId) || (m.senderId === rId && m.receiverId === sId));
+        }, [messages, role, userEmail, messageRecipientEmail]);
+
+        // SVGs report calculations
+        const behaviorRatio = useMemo(() => {
+          const positives = pointLogs.filter(l => l.type === 'positive').length;
+          const total = pointLogs.length || 1;
+          return Math.round((positives / total) * 100);
+        }, [pointLogs]);
+
+        const topStudents = useMemo(() => {
+          return [...students].sort((a, b) => b.points - a.points).slice(0, 3);
+        }, [students]);
+
+        // CSV export
+        const exportCSV = () => {
+          const headers = ['Estudante', 'Categoria', 'Pontos', 'Data/Hora'];
+          const rows = pointLogs.map(l => {
+            const student = students.find(s => s.id === l.studentId);
+            return [student?.name || 'N/A', l.categoryName, l.points, new Date(l.timestamp).toLocaleDateString()];
+          });
+          const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
+          const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', 'educlass_dojo_relatorio.csv');
+          link.click();
+        };
+
+        if (!isLoggedIn) {
+          return (
+            <div className="fixed inset-0 bg-[#0a0a0b]/95 backdrop-blur-md flex items-center justify-center p-4 z-50" id="login-modal-container">
+              <div className="bg-[#141416] border border-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#c4a47c] via-[#b09069] to-[#c4a47c]"></div>
+                <div className="text-center mb-8">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-[#c4a47c]/10 flex items-center justify-center text-[#c4a47c] mb-4 border border-[#c4a47c]/25">
+                    <Award className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-3xl font-serif-cormorant font-bold text-slate-100 tracking-wide">EduClass Dojo</h2>
+                  <p className="text-slate-400 text-sm mt-1.5">Escolha seu perfil para entrar instantaneamente</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">Selecione seu Perfil</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => handleLogin('student', 'aluno@escola.com')}
+                        className="py-4 px-3 text-xs font-semibold rounded-xl border bg-[#1e1e21] border-slate-800 text-slate-300 hover:text-[#c4a47c] hover:border-[#c4a47c]/40 transition flex flex-col items-center gap-2"
+                      >
+                        <GraduationCap className="w-6 h-6 text-[#c4a47c]" />
+                        <span>Aluno</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleLogin('teacher', 'ricardo.silva@escola.com')}
+                        className="py-4 px-3 text-xs font-semibold rounded-xl border bg-[#1e1e21] border-slate-800 text-slate-300 hover:text-[#c4a47c] hover:border-[#c4a47c]/40 transition flex flex-col items-center gap-2"
+                      >
+                        <Users className="w-6 h-6 text-[#c4a47c]" />
+                        <span>Professor</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleLogin('parent', 'joaopedro.joaopedro12345678910@gmail.com')}
+                        className="py-4 px-3 text-xs font-semibold rounded-xl border bg-[#1e1e21] border-slate-800 text-slate-300 hover:text-[#c4a47c] hover:border-[#c4a47c]/40 transition flex flex-col items-center gap-2"
+                      >
+                        <Shield className="w-6 h-6 text-[#c4a47c]" />
+                        <span>Responsável</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleLogin('admin', 'admin@escola.com')}
+                        className="py-4 px-3 text-xs font-semibold rounded-xl border bg-[#1e1e21] border-slate-800 text-slate-300 hover:text-[#c4a47c] hover:border-[#c4a47c]/40 transition flex flex-col items-center gap-2"
+                      >
+                        <KeyRound className="w-6 h-6 text-[#c4a47c]" />
+                        <span>Admin</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="min-h-screen flex flex-col lg:flex-row bg-[#0a0a0b] text-[#e4e4e7]">
+            {/* --- SIDEBAR --- */}
+            <aside className="w-full lg:w-72 bg-[#141416] border-r border-slate-900 p-6 flex flex-col justify-between shrink-0">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#c4a47c]/10 border border-[#c4a47c]/30 flex items-center justify-center text-[#c4a47c]">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h1 className="font-serif-cormorant text-xl font-bold tracking-wide text-slate-100">EduClass Dojo</h1>
+                    <span className="text-[9px] text-[#c4a47c] tracking-widest uppercase font-bold">Comportamento</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950 border border-slate-900 p-4 rounded-2xl flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-teal-500 to-[#c4a47c] flex items-center justify-center font-bold text-sm text-slate-900">
+                    {role === 'teacher' ? 'RS' : role === 'parent' ? 'JS' : role === 'student' ? 'AL' : 'AD'}
+                  </div>
+                  <div className="overflow-hidden">
+                    <h2 className="text-xs font-bold text-slate-200 truncate">
+                      {role === 'teacher' ? 'Prof. Ricardo Silva' : role === 'parent' ? 'João Santos' : role === 'student' ? 'Davi Santos (Aluno)' : 'Admin Geral'}
+                    </h2>
+                    <p className="text-[10px] text-slate-500 truncate">{userEmail}</p>
+                    <span className="inline-block text-[9px] px-1.5 py-0.2 bg-[#c4a47c]/10 text-[#c4a47c] border border-[#c4a47c]/20 rounded-full font-bold mt-1">
+                      {role.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                <nav className="space-y-1">
+                  {role === 'student' ? (
+                    <button
+                      onClick={() => setActiveTab('student_dashboard')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'student_dashboard' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Dojo do Aluno</span>
+                    </button>
+                  ) : null}
+
+                  <button
+                    onClick={() => setActiveTab('classroom')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'classroom' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>{role === 'student' ? 'Minha Classe' : t.classroom}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('messages')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'messages' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>{t.messages}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('calendar')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'calendar' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>{t.calendar}</span>
+                  </button>
+
+                  {role !== 'student' && (
+                    <button
+                      onClick={() => setActiveTab('reports')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'reports' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                    >
+                      <TrendingUp className="w-4 h-4" />
+                      <span>{t.reports}</span>
+                    </button>
+                  )}
+
+                  {role !== 'student' && (
+                    <button
+                      onClick={() => setActiveTab('payment')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'payment' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>{t.payment}</span>
+                    </button>
+                  )}
+
+                  {role === 'admin' && (
+                    <button
+                      onClick={() => setActiveTab('admin')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition ${activeTab === 'admin' ? 'bg-[#c4a47c] text-[#0a0a0b]' : 'text-slate-400 hover:bg-slate-900'}`}
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span>{t.adminPanel}</span>
+                    </button>
+                  )}
+                </nav>
+              </div>
+
+              <div className="pt-6 border-t border-slate-900 space-y-3">
+                <button
+                  onClick={() => setShowEduAIChat(!showEduAIChat)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-950 hover:bg-slate-900 border border-[#c4a47c]/20 text-xs font-bold text-[#c4a47c] transition"
+                >
+                  <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 animate-pulse" /> EduAI Assist</span>
+                  <span className="text-[10px] bg-[#c4a47c]/10 px-1.5 py-0.5 rounded">Ativo</span>
+                </button>
+
+                <div className="flex justify-between items-center text-xs text-slate-500">
+                  <span className="flex items-center gap-1"><Wifi className="w-3.5 h-3.5 text-emerald-500" /> Standalone</span>
+                  <button onClick={() => setIsLoggedIn(false)} className="text-rose-400 hover:underline">Sair</button>
+                </div>
+              </div>
+            </aside>
+
+            {/* --- MAIN CONTENT WINDOW --- */}
+            <main className="flex-1 p-6 lg:p-10 space-y-6 overflow-y-auto max-h-screen">
+              
+              {/* --- TAB: STUDENT DASHBOARD (🥋 DOJO DO ALUNO) --- */}
+              {activeTab === 'student_dashboard' && role === 'student' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div className="relative rounded-3xl bg-gradient-to-r from-slate-950 to-[#141416] border border-slate-900 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="space-y-2">
+                      <span className="px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-bold uppercase tracking-wider">🥋 Área do Aluno</span>
+                      <h1 className="font-serif-cormorant text-4xl text-slate-100 font-light leading-tight">
+                        Olá, <span className="text-[#c4a47c] font-normal">{loggedInStudent.name}</span>!
+                      </h1>
+                      <p className="text-slate-400 text-xs max-w-lg">Acompanhe seus pontos, desbloqueie cinturões exclusivos e resgate recompensas incríveis no Baú do Tesouro!</p>
+                    </div>
+
+                    <div className="bg-[#1e1e21] border border-[#c4a47c]/20 p-5 rounded-2xl flex items-center gap-4 text-left shadow-lg shrink-0">
+                      <span className="text-5xl">{loggedInStudent.avatar}</span>
+                      <div>
+                        <div className="text-[10px] font-bold text-[#c4a47c] uppercase tracking-widest">Graduação</div>
+                        <div className="text-base font-bold text-slate-100">
+                          {loggedInStudent.points >= 50 ? 'Cinturão de Ouro 🥇' : loggedInStudent.points >= 25 ? 'Cinturão de Prata 🥈' : 'Cinturão de Bronze 🥉'}
+                        </div>
+                        <div className="text-xs text-slate-400">{loggedInStudent.points} pontos totais</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Evolution & Quests */}
+                    <div className="space-y-6">
+                      <div className="bg-[#141416] border border-slate-900 rounded-3xl p-6 space-y-4">
+                        <h3 className="font-serif-cormorant text-2xl text-[#c4a47c]">Evolução de Nível</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-400">XP para Próximo Nível</span>
+                            <span className="text-[#c4a47c] font-bold">{(loggedInStudent.points % 20)}/20 XP</span>
+                          </div>
+                          <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-[#c4a47c] to-amber-500 transition-all duration-300" style={{ width: `${((loggedInStudent.points % 20) / 20) * 100}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-950 text-center">
+                          <div className="bg-[#1e1e21] p-3 rounded-xl">
+                            <div className="text-2xl font-bold text-slate-100">{Math.floor(loggedInStudent.points / 20) + 1}</div>
+                            <div className="text-[10px] text-slate-400 uppercase">Nível</div>
+                          </div>
+                          <div className="bg-[#1e1e21] p-3 rounded-xl">
+                            <div className="text-2xl font-bold text-[#c4a47c]">{loggedInStudent.points}</div>
+                            <div className="text-[10px] text-slate-400 uppercase">Pontos</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#141416] border border-slate-900 rounded-3xl p-6 space-y-4">
+                        <h3 className="font-serif-cormorant text-2xl text-[#c4a47c]">Missões Diárias</h3>
+                        <div className="space-y-2.5">
+                          {quests.map(q => (
+                            <div key={q.id} className="flex items-center justify-between p-3 rounded-xl bg-[#1e1e21] border border-slate-950 hover:border-slate-800 transition">
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={q.completed}
+                                  onChange={(e) => handleQuestCheck(q.id, e.target.checked, q.reward)}
+                                  disabled={q.completed}
+                                  className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-[#c4a47c] focus:ring-0"
+                                />
+                                <span className={`text-xs ${q.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}>{q.text}</span>
+                              </div>
+                              <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">+{q.reward} Pts</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Medals and logs */}
+                    <div className="space-y-6">
+                      <div className="bg-[#141416] border border-slate-900 rounded-3xl p-6 space-y-4">
+                        <h3 className="font-serif-cormorant text-2xl text-[#c4a47c]">Medalhas do Dojo</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { name: "Iniciante", icon: "🥋", cond: true },
+                            { name: "Super Foco", icon: "🎯", cond: loggedInStudent.points >= 15 },
+                            { name: "Gentileza", icon: "🤝", cond: loggedInStudent.points >= 25 },
+                            { name: "Lenda Dojo", icon: "👑", cond: loggedInStudent.points >= 40 }
+                          ].map((m, i) => (
+                            <div key={i} className={`p-4 rounded-xl border text-center relative flex flex-col items-center ${m.cond ? 'bg-[#1e1e21] border-[#c4a47c]/30 text-slate-100' : 'bg-slate-950/40 border-slate-900 text-slate-500'}`}>
+                              <span className={`text-3xl ${m.cond ? 'grayscale-0' : 'grayscale'}`}>{m.icon}</span>
+                              <span className="text-[10px] font-bold mt-1.5">{m.name}</span>
+                              <span className="text-[9px] text-slate-400 mt-0.5">{m.cond ? "✓ Conquistado" : "Bloqueado"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-[#141416] border border-slate-900 rounded-3xl p-6 space-y-3">
+                        <h3 className="font-serif-cormorant text-2xl text-[#c4a47c]">Histórico Recente</h3>
+                        <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                          {pointLogs.filter(log => log.studentId === loggedInStudent.id).map(log => (
+                            <div key={log.id} className="p-3 rounded-xl bg-[#1e1e21] border border-slate-950 flex items-center justify-between text-xs">
+                              <div>
+                                <p className="font-bold text-slate-200">{log.categoryName}</p>
+                                <span className="text-[10px] text-slate-500">{new Date(log.timestamp).toLocaleDateString()}</span>
+                              </div>
+                              <span className={`font-mono font-bold px-2 py-0.5 rounded-full ${log.points >= 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                {log.points >= 0 ? `+${log.points}` : log.points}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Treasure chest Store */}
+                    <div className="bg-[#141416] border border-slate-900 rounded-3xl p-6 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-serif-cormorant text-2xl text-[#c4a47c]">Baú do Tesouro</h3>
+                        <span className="text-3xl animate-bounce">📦</span>
+                      </div>
+                      <p className="text-xs text-slate-400">Troque seus pontos acumulados do Dojo por recompensas especiais!</p>
+                      
+                      <div className="space-y-3">
+                        {[
+                          { title: 'Caneta Colorida', cost: 10, icon: '✏️' },
+                          { title: 'Escolher Lugar', cost: 25, icon: '🪑' },
+                          { title: 'Ajudante do Professor', cost: 35, icon: '🙋' },
+                          { title: 'Passe Livre de Lição', cost: 50, icon: '📜' }
+                        ].map((item, idx) => {
+                          const canAfford = loggedInStudent.points >= item.cost;
+                          return (
+                            <div key={idx} className="p-4 rounded-xl bg-[#1e1e21] border border-slate-950 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{item.icon}</span>
+                                <div>
+                                  <p className="text-xs font-bold text-slate-100">{item.title}</p>
+                                  <span className="text-[10px] text-[#c4a47c] font-semibold">{item.cost} pontos</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleRedeemReward(item)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${canAfford ? 'bg-[#c4a47c] hover:bg-[#b09069] text-[#0a0a0b]' : 'bg-slate-950 border border-slate-900 text-slate-600 cursor-not-allowed'}`}
+                              >
+                                Resgatar
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB: CLASSROOM / SALA DE AULA --- */}
+              {activeTab === 'classroom' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <span className="px-2.5 py-1 rounded-full bg-[#c4a47c]/10 text-[#c4a47c] border border-[#c4a47c]/20 text-[10px] font-bold uppercase tracking-wider">EduClass Dojo</span>
+                      <h1 className="font-serif-cormorant text-4xl text-slate-100 font-light mt-1">Sala de Aula</h1>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {role === 'teacher' && (
+                        <>
+                          <button
+                            onClick={() => { setIsBatchMode(!isBatchMode); setSelectedStudentIds([]); }}
+                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${isBatchMode ? 'bg-amber-500 text-slate-950' : 'bg-[#141416] border border-slate-900 text-slate-300'}`}
+                          >
+                            <Layers className="w-4 h-4" />
+                            <span>{isBatchMode ? 'Cancelar Seleção' : 'Atribuição Coletiva'}</span>
+                          </button>
+                          <button
+                            onClick={() => setShowAddStudentModal(true)}
+                            className="px-4 py-2.5 bg-[#c4a47c] hover:bg-[#b09069] text-slate-900 rounded-xl text-xs font-bold transition flex items-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Adicionar Aluno</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Search and warning bar */}
+                  <div className="flex items-center gap-4 bg-[#141416] p-4 rounded-2xl border border-slate-900">
+                    <Search className="w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Buscar aluno por nome..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-none text-xs focus:outline-none focus:ring-0 flex-1 text-slate-100 placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Classroom students grid */}
+                  {isBatchMode && (
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl flex justify-between items-center text-xs">
+                      <span>Selecione os alunos abaixo para dar feedback simultâneo. Alunos selecionados: <b>{selectedStudentIds.length}</b></span>
+                      {selectedStudentIds.length > 0 && (
+                        <button
+                          onClick={() => setActiveStudentForPoints({ id: 'batch_selection' })}
+                          className="px-3.5 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg hover:bg-amber-400 transition"
+                        >
+                          Lançar Pontos para os {selectedStudentIds.length}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    {filteredStudents.map(student => {
+                      const isSelected = selectedStudentIds.includes(student.id);
+                      return (
+                        <div
+                          key={student.id}
+                          className={`relative rounded-3xl p-6 border transition duration-300 flex flex-col items-center text-center ${
+                            isSelected 
+                              ? 'bg-amber-500/10 border-amber-500 shadow-lg' 
+                              : 'bg-[#141416] border-slate-900 hover:border-[#c4a47c]/30'
+                          }`}
+                        >
+                          {/* Batch selection checkbox overlay */}
+                          {isBatchMode && (
+                            <button
+                              onClick={() => {
+                                setSelectedStudentIds(prev => isSelected ? prev.filter(id => id !== student.id) : [...prev, student.id]);
+                              }}
+                              className="absolute top-3 left-3 w-5 h-5 bg-slate-950 border border-slate-800 rounded flex items-center justify-center text-[#c4a47c]"
+                            >
+                              {isSelected && <Check className="w-4 h-4" />}
+                            </button>
+                          )}
+
+                          {/* Quick delete student for teacher */}
+                          {role === 'teacher' && !isBatchMode && (
+                            <button
+                              onClick={() => handleDeleteStudent(student.id, student.name)}
+                              className="absolute top-3 right-3 text-slate-600 hover:text-rose-400 p-1"
+                              title="Remover estudante"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          <span className="text-5xl mt-2 mb-4 bg-slate-950 p-4 rounded-full w-20 h-20 flex items-center justify-center border border-slate-900 shadow-inner">
+                            {student.avatar}
+                          </span>
+
+                          <h3 className="font-serif-cormorant text-lg font-bold text-slate-100 truncate w-full">{student.name}</h3>
+                          <span className={`text-[10px] font-mono mt-0.5 px-2 py-0.5 rounded-full font-bold ${student.points >= 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                            {student.points} pontos
+                          </span>
+
+                          {/* Action Button */}
+                          {role === 'teacher' && !isBatchMode && (
+                            <div className="w-full mt-4 space-y-1.5">
+                              <button
+                                onClick={() => setActiveStudentForPoints(student)}
+                                className="w-full py-1.5 bg-[#c4a47c] hover:bg-[#b09069] text-slate-900 font-bold rounded-xl text-[10px] uppercase tracking-wider transition"
+                              >
+                                Feedback (+)
+                              </button>
+                              <button
+                                onClick={() => handleGenerateAIReport(student)}
+                                className="w-full py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-400 hover:text-slate-200 font-bold rounded-xl text-[10px] uppercase tracking-wider transition flex items-center justify-center gap-1"
+                                disabled={generatingReportForId === student.id}
+                              >
+                                {generatingReportForId === student.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-amber-400" />}
+                                <span>Relatório IA</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {role === 'parent' && student.parentEmail === userEmail && (
+                            <span className="text-[9px] text-emerald-400 font-bold tracking-wider mt-3 uppercase">Seu Filho</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB: MESSAGES / MENSAGENS --- */}
+              {activeTab === 'messages' && (
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 animate-fade-in">
+                  <div className="lg:col-span-1 space-y-4">
+                    <h2 className="font-serif-cormorant text-2xl text-slate-100 font-semibold mb-4">Responsáveis</h2>
+                    <div className="space-y-1.5">
+                      {[
+                        { name: "João Santos (Davi)", email: "joaopedro.joaopedro12345678910@gmail.com" },
+                        { name: "Marcos Silva (Artur)", email: "artur.pais@email.com" },
+                        { name: "Helena Costa (Beatriz)", email: "beatriz.pais@email.com" },
+                        { name: "Sofia Oliveira (Caio)", email: "caio.pais@email.com" }
+                      ].map(p => (
+                        <button
+                          key={p.email}
+                          onClick={() => {
+                            if (role === 'teacher') setMessageRecipientEmail(p.email);
+                          }}
+                          disabled={role !== 'teacher'}
+                          className={`w-full text-left p-3.5 rounded-2xl border text-xs transition flex flex-col gap-1 ${
+                            messageRecipientEmail === p.email && role === 'teacher'
+                              ? 'bg-[#c4a47c]/10 border-[#c4a47c] text-slate-100'
+                              : 'bg-[#141416] border-slate-900 text-slate-400 hover:border-slate-800'
+                          }`}
+                        >
+                          <span className="font-bold text-slate-200">{p.name}</span>
+                          <span className="text-[10px] text-slate-500 truncate">{p.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-3 bg-[#141416] border border-slate-900 rounded-3xl p-6 flex flex-col h-[550px]">
+                    <div className="pb-4 border-b border-slate-950 flex justify-between items-center">
+                      <div>
+                        <h3 className="font-bold text-xs uppercase tracking-widest text-[#c4a47c]">Conversando com</h3>
+                        <p className="text-sm text-slate-100 font-semibold">{role === 'teacher' ? messageRecipientEmail : "Prof. Ricardo Silva"}</p>
+                      </div>
+                      <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold">Online</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+                      {filteredMessages.map(msg => {
+                        const isMe = role === 'teacher' ? msg.senderId === 'teacher_1' : msg.senderId === userEmail;
+                        return (
+                          <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`p-4 rounded-2xl max-w-md text-xs relative ${isMe ? 'bg-[#c4a47c] text-slate-950 font-medium rounded-tr-none' : 'bg-slate-950 text-slate-200 rounded-tl-none border border-slate-900'}`}>
+                              <p className="leading-relaxed">{msg.content}</p>
+                              {msg.attachment && (
+                                <div className="mt-2.5 p-2 bg-black/10 rounded-lg flex items-center gap-2 border border-black/5 text-[10px]">
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                  <span className="truncate">{msg.attachment.name} ({msg.attachment.size})</span>
+                                </div>
+                              )}
+                              <span className="block text-[9px] opacity-60 text-right mt-1.5">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <form onSubmit={handleSendMessage} className="pt-4 border-t border-slate-950 flex gap-3 items-center">
+                      <div className="flex-1 flex items-center bg-slate-950 rounded-xl px-4 py-2 border border-slate-900">
+                        <input
+                          type="text"
+                          placeholder="Digite sua mensagem escolar..."
+                          value={newMessageText}
+                          onChange={(e) => setNewMessageText(e.target.value)}
+                          className="bg-transparent border-none text-xs focus:outline-none focus:ring-0 flex-1 text-slate-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAttachedFile({ name: 'boletim_comportamental.pdf', size: '234 KB', type: 'pdf' })}
+                          className={`p-1.5 rounded-lg transition ${attachedFile ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                          <Paperclip className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button type="submit" className="p-3 bg-[#c4a47c] hover:bg-[#b09069] text-slate-900 rounded-xl transition">
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB: CALENDAR / CALENDÁRIO --- */}
+              {activeTab === 'calendar' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex justify-between items-center">
+                    <h2 className="font-serif-cormorant text-4xl text-slate-100">Calendário Escolar</h2>
+                    {role === 'teacher' && (
+                      <button
+                        onClick={() => setShowAddEventModal(true)}
+                        className="px-4 py-2 bg-[#c4a47c] hover:bg-[#b09069] text-slate-900 rounded-xl text-xs font-bold transition flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Agendar Evento</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {calendarEvents.map(evt => (
+                      <div key={evt.id} className="bg-[#141416] border border-slate-900 p-6 rounded-3xl space-y-4 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3">
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            evt.category === 'holiday' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                            evt.category === 'exam' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                            evt.category === 'meeting' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                            'bg-[#c4a47c]/10 text-[#c4a47c] border border-[#c4a47c]/20'
+                          }`}>
+                            {evt.category}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-slate-400 text-xs">
+                            <Clock className="w-3.5 h-3.5 text-[#c4a47c]" />
+                            <span>{new Date(evt.date).toLocaleDateString()}</span>
+                          </div>
+                          <h3 className="font-serif-cormorant text-xl font-bold text-slate-100">{evt.title}</h3>
+                          <p className="text-xs text-slate-400 leading-relaxed">{evt.description}</p>
+                        </div>
+
+                        {role === 'teacher' && (
+                          <div className="pt-4 border-t border-slate-950 flex justify-end">
+                            <button
+                              onClick={() => handleDeleteEvent(evt.id)}
+                              className="text-xs text-rose-400 hover:underline flex items-center gap-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Excluir
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB: REPORTS / RELATÓRIOS --- */}
+              {activeTab === 'reports' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div className="flex justify-between items-center">
+                    <h2 className="font-serif-cormorant text-4xl text-slate-100">Relatório Comportamental</h2>
+                    <button
+                      onClick={exportCSV}
+                      className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Exportar CSV</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl text-center space-y-4">
+                      <h3 className="font-serif-cormorant text-xl text-[#c4a47c]">Percentual de Reforço Positivo</h3>
+                      
+                      {/* Interactive SVG Pie/Circle Chart */}
+                      <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="80" cy="80" r="60" stroke="#0a0a0b" strokeWidth="12" fill="transparent" />
+                          <circle cx="80" cy="80" r="60" stroke="#10b981" strokeWidth="12" fill="transparent"
+                            strokeDasharray={376.8}
+                            strokeDashoffset={376.8 - (376.8 * behaviorRatio) / 100}
+                          />
+                        </svg>
+                        <span className="absolute text-2xl font-bold font-mono text-emerald-400">{behaviorRatio}%</span>
+                      </div>
+                      <p className="text-xs text-slate-400">Excelente proporção! A maior parte dos feedbacks na classe estimula o bom comportamento.</p>
+                    </div>
+
+                    <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl space-y-4">
+                      <h3 className="font-serif-cormorant text-xl text-[#c4a47c]">Alunos Mais Pontuados (Top 3)</h3>
+                      <div className="space-y-3 pt-2">
+                        {topStudents.map((s, idx) => (
+                          <div key={s.id} className="flex items-center justify-between p-3.5 bg-slate-950 border border-slate-900 rounded-xl">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-bold font-mono text-[#c4a47c]">#{idx+1}</span>
+                              <span className="text-2xl">{s.avatar}</span>
+                              <span className="text-xs font-bold text-slate-200">{s.name}</span>
+                            </div>
+                            <span className="text-xs font-bold text-emerald-400 font-mono">{s.points} Pts</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl space-y-4">
+                      <h3 className="font-serif-cormorant text-xl text-[#c4a47c]">Atividade no Dojo</h3>
+                      <div className="h-44 flex items-end justify-between gap-2 pt-6">
+                        {pointLogs.slice(0, 7).reverse().map((log, index) => (
+                          <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                            <div className={`w-full rounded-t-lg transition-all duration-500 ${log.points >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ height: `${Math.max(15, Math.abs(log.points) * 45)}px` }}></div>
+                            <span className="text-[9px] text-slate-500 font-mono">D{index+1}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-500 text-center">Gráfico de flutuação comportamental dos últimos 7 logs lançados.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB: PAYMENTS / MENSALIDADES --- */}
+              {activeTab === 'payment' && (
+                <div className="space-y-6 animate-fade-in">
+                  <h2 className="font-serif-cormorant text-4xl text-slate-100">Taxas & Mensalidades</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {payments.map(item => (
+                      <div key={item.id} className="bg-[#141416] border border-slate-900 p-6 rounded-3xl flex flex-col justify-between space-y-4 relative">
+                        <div className="absolute top-4 right-4">
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${item.status === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'}`}>
+                            {item.status === 'paid' ? 'Pago' : 'Pendente'}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">{item.category}</span>
+                          <h3 className="font-bold text-sm text-slate-100">{item.title}</h3>
+                          <div className="text-2xl font-bold text-slate-200 mt-2 font-mono">R$ {item.amount.toFixed(2)}</div>
+                          <p className="text-[10px] text-slate-500">Vencimento: {new Date(item.dueDate).toLocaleDateString()}</p>
+                        </div>
+
+                        {item.status === 'pending' && role === 'parent' && (
+                          <button
+                            onClick={() => setShowPayModal(item)}
+                            className="w-full py-2 bg-[#c4a47c] hover:bg-[#b09069] text-slate-900 font-bold text-xs uppercase tracking-wider rounded-xl transition"
+                          >
+                            Pagar Agora
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB: ADMIN PANEL / PAINEL ADMINISTRADOR --- */}
+              {activeTab === 'admin' && role === 'admin' && (
+                <div className="space-y-8 animate-fade-in">
+                  <h2 className="font-serif-cormorant text-4xl text-slate-100">Painel de Administração</h2>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl space-y-3">
+                      <h3 className="font-bold text-xs uppercase tracking-widest text-[#c4a47c]">Status do Workspace</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs py-2 border-b border-slate-950">
+                          <span className="text-slate-400">Total de Estudantes</span>
+                          <span className="font-bold text-slate-200">{students.length}</span>
+                        </div>
+                        <div className="flex justify-between text-xs py-2 border-b border-slate-950">
+                          <span className="text-slate-400">Atividades Registradas</span>
+                          <span className="font-bold text-slate-200">{pointLogs.length}</span>
+                        </div>
+                        <div className="flex justify-between text-xs py-2">
+                          <span className="text-slate-400">Integridade dos Dados</span>
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">✓ 100% Saudável</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl space-y-4">
+                      <h3 className="font-bold text-xs uppercase tracking-widest text-[#c4a47c]">Configurações de Webhook</h3>
+                      <div className="space-y-3">
+                        <div className="p-3 bg-slate-950 border border-slate-900 rounded-xl space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-xs text-slate-200">Sincronizador Secretaria</span>
+                            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono font-bold">Ativo</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate">https://api.escola.com/webhooks/behavior</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl space-y-3">
+                      <h3 className="font-bold text-xs uppercase tracking-widest text-[#c4a47c]">Logs de Auditoria</h3>
+                      <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                        {auditLogs.map(log => (
+                          <div key={log.id} className="p-2.5 bg-slate-950 rounded-xl border border-slate-900 text-[11px] space-y-1">
+                            <div className="flex justify-between text-slate-400">
+                              <span className="font-bold text-[#c4a47c]">{log.action}</span>
+                              <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <p className="text-slate-300 leading-normal">{log.details}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </main>
+
+            {/* --- FLOATING PEER EDUAI PEDAGOGICAL ASSISTANT CHAT SIDEBAR --- */}
+            {showEduAIChat && (
+              <div className="fixed bottom-6 right-6 w-96 h-[480px] bg-[#141416] border border-[#c4a47c]/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden z-50 animate-fade-in">
+                <div className="bg-gradient-to-r from-slate-950 to-[#141416] p-4 border-b border-slate-900 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+                    <div>
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-100">EduAI Assist</h4>
+                      <span className="text-[9px] text-[#c4a47c]">Conselheiro Pedagógico</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowEduAIChat(false)} className="text-slate-400 hover:text-slate-200 font-bold text-xs">Fechar</button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {aiChatHistory.map((chat, idx) => (
+                    <div key={idx} className={`flex ${chat.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[280px] text-xs ${chat.sender === 'user' ? 'bg-[#c4a47c] text-slate-950 font-semibold' : 'bg-slate-950 text-slate-300 border border-slate-900'}`}>
+                        {chat.text}
+                      </div>
+                    </div>
+                  ))}
+                  {aiLoading && (
+                    <div className="flex justify-start">
+                      <div className="p-3 rounded-2xl bg-slate-950 text-slate-500 border border-slate-900 text-xs flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Pensando...
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleAskDojoAI} className="p-3 border-t border-slate-900 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Pergunte sobre práticas de reforço positivo..."
+                    value={aiPromptText}
+                    onChange={(e) => setAiPromptText(e.target.value)}
+                    className="flex-1 bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-[#c4a47c]"
+                  />
+                  <button type="submit" className="p-2.5 bg-[#c4a47c] text-slate-950 rounded-xl font-bold hover:bg-[#b09069] transition">
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* --- MODAL: POINT GIVING FEEDBACK --- */}
+            {activeStudentForPoints && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl max-w-xl w-full space-y-5">
+                  <div className="flex justify-between items-center border-b border-slate-950 pb-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#c4a47c] uppercase">Atribuição de Comportamento</span>
+                      <h3 className="font-serif-cormorant text-2xl text-slate-100 mt-0.5">
+                        {activeStudentForPoints.id === 'batch_selection' ? 'Dar Feedback Coletivo' : `Feedback para ${activeStudentForPoints.name}`}
+                      </h3>
+                    </div>
+                    <button onClick={() => setActiveStudentForPoints(null)} className="text-slate-500 hover:text-slate-300">Fechar</button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Positivos (+)</span>
+                      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                        {categories.filter(c => c.type === 'positive').map(cat => (
+                          <button
+                            key={cat.id}
+                            onClick={() => {
+                              if (activeStudentForPoints.id === 'batch_selection') handleBatchPoints(cat);
+                              else handleGivePoints(cat);
+                            }}
+                            className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-900 text-xs hover:border-emerald-500/40 hover:bg-[#10b981]/5 transition flex justify-between items-center"
+                          >
+                            <span className="font-bold text-slate-200">{cat.name}</span>
+                            <span className="font-mono font-bold text-emerald-400">+{cat.points}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Atenção (-)</span>
+                      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                        {categories.filter(c => c.type === 'negative').map(cat => (
+                          <button
+                            key={cat.id}
+                            onClick={() => {
+                              if (activeStudentForPoints.id === 'batch_selection') handleBatchPoints(cat);
+                              else handleGivePoints(cat);
+                            }}
+                            className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-900 text-xs hover:border-rose-500/40 hover:bg-[#f43f5e]/5 transition flex justify-between items-center"
+                          >
+                            <span className="font-bold text-slate-200">{cat.name}</span>
+                            <span className="font-mono font-bold text-rose-400">{cat.points}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- MODAL: SMART AI BEHAVIOR REPORT --- */}
+            {activeAIReportCard && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div className="bg-[#141416] border border-slate-900 p-6 rounded-3xl max-w-xl w-full space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-950 pb-3">
+                    <span className="font-serif-cormorant text-2xl text-slate-100 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+                      <span>Rascunho de IA para {activeAIReportCard.student.name}</span>
+                    </span>
+                    <button onClick={() => setActiveAIReportCard(null)} className="text-slate-500 hover:text-slate-300">Fechar</button>
+                  </div>
+
+                  <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl text-xs text-slate-300 overflow-y-auto max-h-96 space-y-3 font-sans leading-relaxed">
+                    {activeAIReportCard.reportText.split('\n').map((line, idx) => (
+                      <p key={idx}>{line}</p>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3">
+                    <button
+                      onClick={() => {
+                        setMessageRecipientEmail(activeAIReportCard.student.parentEmail);
+                        setNewMessageText(`Olá! Aqui está o relatório de comportamento do(a) ${activeAIReportCard.student.name} desta semana:\n\n${activeAIReportCard.reportText}`);
+                        setActiveTab('messages');
+                        setActiveAIReportCard(null);
+                      }}
+                      className="px-4 py-2 bg-[#c4a47c] text-slate-950 font-bold rounded-xl text-xs hover:bg-[#b09069] transition"
+                    >
+                      Enviar para o Responsável no Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- MODAL: ADD STUDENT --- */}
+            {showAddStudentModal && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <form onSubmit={handleAddStudent} className="bg-[#141416] border border-slate-900 p-6 rounded-3xl max-w-md w-full space-y-4">
+                  <h3 className="font-serif-cormorant text-2xl text-slate-100">Matricular Novo Aluno</h3>
+                  
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Nome Completo</label>
+                      <input
+                        type="text" required value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 text-xs focus:border-[#c4a47c]"
+                        placeholder="Nome do aluno"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-400 mb-1">Nome do Responsável</label>
+                        <input
+                          type="text" value={newStudentParentName} onChange={(e) => setNewStudentParentName(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 text-xs focus:border-[#c4a47c]"
+                          placeholder="Responsável"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 mb-1">E-mail do Responsável</label>
+                        <input
+                          type="email" value={newStudentParentEmail} onChange={(e) => setNewStudentParentEmail(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 text-xs focus:border-[#c4a47c]"
+                          placeholder="email@escola.com"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Avatar Emoji</label>
+                      <div className="grid grid-cols-6 gap-2">
+                        {['🤖', '👾', '🦊', '🐯', '🦄', '🦁', '🐻', '🐼', '🐨', '🦖', '🐙', '🐝'].map(emoji => (
+                          <button
+                            type="button" key={emoji} onClick={() => setNewStudentAvatar(emoji)}
+                            className={`p-2.5 rounded-xl text-xl border transition ${newStudentAvatar === emoji ? 'bg-[#c4a47c]/15 border-[#c4a47c]' : 'bg-slate-950 border-slate-900 hover:border-slate-800'}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3">
+                    <button type="button" onClick={() => setShowAddStudentModal(false)} className="px-4 py-2 text-xs text-slate-400">Cancelar</button>
+                    <button type="submit" className="px-4 py-2 bg-[#c4a47c] text-slate-950 font-bold rounded-xl text-xs">Adicionar</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* --- MODAL: ADD EVENT --- */}
+            {showAddEventModal && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <form onSubmit={handleAddCalendarEvent} className="bg-[#141416] border border-slate-900 p-6 rounded-3xl max-w-md w-full space-y-4">
+                  <h3 className="font-serif-cormorant text-2xl text-slate-100">Agendar Evento no Dojo</h3>
+                  
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Título do Evento</label>
+                      <input
+                        type="text" required value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c]"
+                        placeholder="Ex: Feira de ciências"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Descrição</label>
+                      <textarea
+                        value={newEventDesc} onChange={(e) => setNewEventDesc(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c] h-20"
+                        placeholder="Detalhes..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-400 mb-1">Data</label>
+                        <input
+                          type="date" required value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 mb-1">Categoria</label>
+                        <select
+                          value={newEventCategory} onChange={(e) => setNewEventCategory(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c]"
+                        >
+                          <option value="event">Evento</option>
+                          <option value="holiday">Feriado</option>
+                          <option value="exam">Avaliação</option>
+                          <option value="meeting">Reunião</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3">
+                    <button type="button" onClick={() => setShowAddEventModal(false)} className="px-4 py-2 text-xs text-slate-400">Cancelar</button>
+                    <button type="submit" className="px-4 py-2 bg-[#c4a47c] text-slate-950 font-bold rounded-xl text-xs">Salvar</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* --- MODAL: PAYMENT CHECKOUT SIMULATOR --- */}
+            {showPayModal && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <form onSubmit={handlePayFee} className="bg-[#141416] border border-slate-900 p-6 rounded-3xl max-w-sm w-full space-y-4">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest font-mono">Checkout Seguro</span>
+                    <h3 className="font-serif-cormorant text-2xl text-slate-100">Pagar Taxa Escolar</h3>
+                    <p className="text-xs text-slate-400 mt-1">{showPayModal.title}</p>
+                    <div className="text-3xl font-bold font-mono text-[#c4a47c] mt-2">R$ {showPayModal.amount.toFixed(2)}</div>
+                  </div>
+
+                  <div className="space-y-3 text-xs pt-2">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Nome no Cartão</label>
+                      <input
+                        type="text" required value={cardName} onChange={(e) => setCardName(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c]"
+                        placeholder="Nome como impresso"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Número do Cartão</label>
+                      <input
+                        type="text" required value={cardNumber} onChange={(e) => setCardNumber(e.target.value)}
+                        maxLength="19" className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c] font-mono"
+                        placeholder="4444 4444 4444 4444"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-400 mb-1">Validade</label>
+                        <input
+                          type="text" required maxLength="5" className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c] font-mono"
+                          placeholder="MM/AA"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 mb-1">CVV</label>
+                        <input
+                          type="password" required maxLength="3" className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-900 text-slate-100 focus:border-[#c4a47c] font-mono"
+                          placeholder="123"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-3">
+                    <button type="button" onClick={() => setShowPayModal(null)} className="flex-1 py-2.5 border border-slate-900 rounded-xl text-xs text-slate-400">Cancelar</button>
+                    <button type="submit" className="flex-1 py-2.5 bg-[#c4a47c] hover:bg-[#b09069] text-slate-900 font-bold rounded-xl text-xs uppercase tracking-wider">Confirmar</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+          </div>
+        );
+      }
+
+      // Render standalone App
+      const rootEl = document.getElementById('root');
+      if (rootEl) {
+        const root = createRoot(rootEl);
+        root.render(<App />);
+      }
+    </script>
   </body>
 </html>
